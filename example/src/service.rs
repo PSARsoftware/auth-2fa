@@ -5,7 +5,6 @@ use crate::{
     }, otp_handlers::disable_otp_handler_impl, response::{GenericResponse, UserData, UserResponse}
 };
 use actix_web::{get, post, web, HttpResponse, Responder};
-use base32;
 use chrono::prelude::*;
 use rand::Rng;
 use serde_json::json;
@@ -239,7 +238,13 @@ async fn disable_otp_handler(
     body: web::Json<DisableOTPSchema>,
     data: web::Data<AppState>,
 ) -> impl Responder {
-    disable_otp_handler_impl(body.user_id.clone(), data).await
+    let result = disable_otp_handler_impl(body.user_id.clone(), data.db.clone()).await;
+
+    if result.is_error {
+        HttpResponse::NotFound().json(result.json_response)
+    } else {
+        HttpResponse::Ok().json(result.json_response)
+    }
 }
 
 pub fn user_to_response(user: &User) -> UserData {
