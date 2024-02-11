@@ -2,8 +2,7 @@ use crate::{
     models::{
         AppState, DisableOTPSchema, GenerateOTPSchema, User, UserLoginSchema, UserRegisterSchema,
         VerifyOTPSchema,
-    },
-    response::{GenericResponse, UserData, UserResponse},
+    }, otp_handlers::disable_otp_handler_impl, response::{GenericResponse, UserData, UserResponse}
 };
 use actix_web::{get, post, web, HttpResponse, Responder};
 use base32;
@@ -240,32 +239,10 @@ async fn disable_otp_handler(
     body: web::Json<DisableOTPSchema>,
     data: web::Data<AppState>,
 ) -> impl Responder {
-    let mut vec = data.db.lock().unwrap();
-
-    let user = vec
-        .iter_mut()
-        .find(|user| user.id == Some(body.user_id.to_owned()));
-
-    if user.is_none() {
-        let json_error = GenericResponse {
-            status: "fail".to_string(),
-            message: format!("No user with Id: {} found", body.user_id),
-        };
-
-        return HttpResponse::NotFound().json(json_error);
-    }
-
-    let user = user.unwrap();
-
-    user.otp_enabled = Some(false);
-    user.otp_verified = Some(false);
-    user.otp_auth_url = None;
-    user.otp_base32 = None;
-
-    HttpResponse::Ok().json(json!({"user": user_to_response(user), "otp_disabled": true}))
+    disable_otp_handler_impl(body.user_id.clone(), data).await
 }
 
-fn user_to_response(user: &User) -> UserData {
+pub fn user_to_response(user: &User) -> UserData {
     UserData {
         id: user.id.to_owned().unwrap(),
         name: user.name.to_owned(),
