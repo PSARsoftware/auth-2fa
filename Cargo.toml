@@ -1,3 +1,4 @@
+workspace = { members = ["example"] }
 [package]
 name = "auth-2fa"
 version = "0.1.0"
