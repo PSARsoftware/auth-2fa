@@ -43,7 +43,7 @@ pub struct UserData {
 impl From<User> for UserData {
     fn from(user: User) -> Self {
         UserData {
-            id: user.id.unwrap(),
+            id: user.id.unwrap().to_string(),
             name: user.name,
             email: user.email,
             otp_auth_url: user.otp_auth_url,

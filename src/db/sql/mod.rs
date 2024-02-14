@@ -9,35 +9,28 @@ use uuid::Uuid;
 use crate::models::{User, UserRegisterSchema};
 use crate::response::GenericResponse;
 
-#[cfg(all(db = "postgres"))]
-mod postgres;
-#[cfg(all(db = "sqlite"))]
-mod sqlite;
-#[cfg(all(db = "mysql"))]
-mod mysql;
-
 pub trait SqlRepo {
-
-    //async fn init(max_connections: u32, uri: &str) -> Result<Box<Self>, sqlx::Error>;
 
     async fn find_user_by_custom_field(&self, field_name: &str, field: &str) -> Option<User>;
 
     async fn register_user_by_email(&self, user: UserRegisterSchema) -> Result<GenericResponse, Box<dyn Error>>;
 }
 
-pub struct SqlRepoImpl<Pool> {
-    // #[cfg(all(db = "postgres"))]
-    // pool: Pool<Postgres>,
-    // #[cfg(all(db = "sqlite"))]
-    // pool: Pool<Sqlite>,
-    //#[cfg(all(db = "mysql"))]
-    //pool: Pool<MySql>,
-    pool: Pool,
+/// this repo compiles depending on args passed into rustc
+/// cargo rustc -- --cfg postgres
+pub struct Repo {
+    #[cfg(all(postgres))]
+    pool: Pool<Postgres>,
+    #[cfg(all(sqlite))]
+    pool: Pool<Sqlite>,
+    #[cfg(all(mysql))]
+    pool: Pool<MySql>,
+
 }
 
-impl SqlRepoImpl<Pool<Postgres>> {
-    #[cfg(all(db = "postgres"))]
-    async fn init(max_connections: u32, uri: &str) -> Result<Box<Self>, sqlx::Error> {
+impl Repo {
+    #[cfg(all(postgres))]
+    pub async fn init(max_connections: u32, uri: &str) -> Result<Box<Self>, sqlx::Error> {
         let pool = PgPoolOptions::new()
             .max_connections(max_connections)
             .connect(uri).await?;
@@ -45,26 +38,28 @@ impl SqlRepoImpl<Pool<Postgres>> {
         Ok( Box::new(Self { pool } ))
     }
 
-    // #[cfg(all(db = "sqlite"))]
-    // async fn init(max_connections: u32, uri: &str) -> Result<Box<Self>, sqlx::Error> {
-    //     let pool = SqlitePoolOptions::new()
-    //         .max_connections(max_connections)
-    //         .connect(uri).await?;
-    //
-    //     Ok( Box::new(Self { pool } ))
-    // }
-    //
-    // #[cfg(all(db = "mysql"))]
-    // async fn init(max_connections: u32, uri: &str) -> Result<Box<Self>, sqlx::Error> {
-    //     let pool = MySqlPoolOptions::new()
-    //         .max_connections(max_connections)
-    //         .connect(uri).await?;
-    //
-    //     Ok( Box::new(Self { pool } ))
-    // }
+    #[cfg(all(sqlite))]
+    pub async fn init(max_connections: u32, uri: &str) -> Result<Box<Self>, sqlx::Error> {
+        let pool = SqlitePoolOptions::new()
+            .max_connections(max_connections)
+            .connect(uri).await?;
+
+        Ok( Box::new(Self { pool } ))
+    }
+
+    #[cfg(all(mysql))]
+    pub async fn init(max_connections: u32, uri: &str) -> Result<Box<Self>, sqlx::Error> {
+        let pool = MySqlPoolOptions::new()
+            .max_connections(max_connections)
+            .connect(uri).await?;
+
+        Ok( Box::new(Self { pool } ))
+    }
 }
 
-impl<Pool> SqlRepo for SqlRepoImpl<Pool> {
+impl SqlRepo for Repo {
+
+    #[cfg(any(postgres, mysql, sqlite))]
     async fn find_user_by_custom_field(&self, field_name: &str, field: &str) -> Option<User> {
         let existing_user: Result<Option<User>, _> = sqlx::query_as!(
                 User,
@@ -83,6 +78,7 @@ impl<Pool> SqlRepo for SqlRepoImpl<Pool> {
         }
     }
 
+    #[cfg(any(postgres, mysql, sqlite))]
     async fn register_user_by_email(&self, user: UserRegisterSchema) -> Result<GenericResponse, Box<dyn Error>> {
         return if self.find_user_by_custom_field("email", &user.email).await.is_none() {
             let uuid_id = Uuid::new_v4();
@@ -101,7 +97,7 @@ impl<Pool> SqlRepo for SqlRepoImpl<Pool> {
                 updatedAt: Some(datetime),
             };
 
-            let registered_user = sqlx::query_as!(
+            let _ = sqlx::query_as!(
                 User,
                 r#"INSERT INTO auth_users (name, email, password) VALUES ($1, $2, $3)"#,
                 &user.name,
@@ -119,26 +115,30 @@ impl<Pool> SqlRepo for SqlRepoImpl<Pool> {
     }
 }
 
-//async fn init(max_connections: u32, uri: &str) -> Result<Box<Self>, sqlx::Error> {
-//         return if cfg!(postgres) {
-//             let pool = PgPoolOptions::new()
-//                 .max_connections(max_connections)
-//                 .connect(uri).await?;
-//
-//             Ok( Box::new(Self { pool } ))
-//         } else if cfg!(sqlite) {
-//             let pool = SqlitePoolOptions::new()
-//                 .max_connections(max_connections)
-//                 .connect(uri).await?;
-//
-//             Ok( Box::new(Self { pool } ))
-//         } else if cfg!(mysql) {
-//             let pool = MySqlPoolOptions::new()
-//                 .max_connections(max_connections)
-//                 .connect(uri).await?;
-//
-//             Ok( Box::new(Self { pool } ))
-//         } else {
-//             panic!("");
-//         };
-//     }
+#[cfg(test)]
+mod tests {
+    use std::env;
+    use dotenv::dotenv;
+    use crate::db::sql::Repo;
+
+    #[tokio::test]
+    async fn test_compilation_and_db_request() -> std::io::Result<()>
+    {
+        dotenv().ok();
+
+        if env::var_os("RUST_LOG").is_none() {
+            env::set_var("RUST_LOG", "actix_web=info");
+        }
+        env_logger::init();
+
+        let DATABASE_URL = env::var("DATABASE_URL").unwrap();
+
+        let repo = Repo::init(5, &DATABASE_URL).await;
+
+        let user = repo.find_user_by_custom_field("email", "vasia_pupkin@mail.ru");
+
+        println!("user {:?}", user);
+
+        Ok(())
+    }
+}
