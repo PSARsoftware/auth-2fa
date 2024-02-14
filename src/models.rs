@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::sync::{Arc,};
 use tokio::sync::Mutex;
 use crate::db::mongo::MONGO_URI;
-use crate::db::mongo::user::UserRepo;
+use crate::db::mongo::MongoRepo;
 use crate::db::mongo::establish_connection;
 
 #[allow(non_snake_case)]
@@ -24,7 +24,7 @@ pub struct User {
 }
 
 pub struct AppState {
-    pub user_repo: Arc<Mutex<UserRepo>>,
+    pub user_repo: Arc<Mutex<MongoRepo>>,
 }
 
 impl AppState {
@@ -34,7 +34,7 @@ impl AppState {
         println!("connection to mongo db has been established");
 
         AppState {
-            user_repo: Arc::new(Mutex::new(UserRepo::init(mongo_client).await)),
+            user_repo: Arc::new(Mutex::new(MongoRepo::init(mongo_client).await)),
         }
     }
 }

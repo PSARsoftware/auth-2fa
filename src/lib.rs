@@ -1,9 +1,13 @@
+use std::env;
 use actix_cors::Cors;
 use actix_web::{App, HttpServer, web};
 use actix_web::http::header;
 use actix_web::middleware::Logger;
 use dotenv::dotenv;
 use env_logger::Builder;
+use crate::db::mongo::{establish_connection, MONGO_URI, MongoRepo};
+use crate::db::sql::SqlRepoImpl;
+use crate::DbDriver::Postgres;
 use crate::models::AppState;
 
 mod otp_handlers;
@@ -30,8 +34,16 @@ pub async fn start_2FA_server(
     }
     env_logger::init();
 
-    let db = AppState::init().await;
-    let app_data = web::Data::new(db);
+    let app_data;
+    if cfg!(postgres) || cfg!(mysql) || cfg!(sqlite) {
+        let DATABASE_URL = env::var("DATABASE_URL").expect("");
+        let MAX_POOL_CONNECTIONS = env::var("MAX_POOL_CONNECTIONS").expect("");
+        app_data = SqlRepoImpl::init(5, &DATABASE_URL).await;
+    }
+    // else if cfg!(mongo) {
+    //     let client = establish_connection(MONGO_URI).await.expect("could not connect to mongo db");
+    //     app_data = MongoRepo::init(client).await;
+    // }
 
     println!("🚀 Server started successfully");
 

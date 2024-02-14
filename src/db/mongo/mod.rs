@@ -8,8 +8,6 @@ use uuid::Uuid;
 use crate::models::{User, UserLoginSchema, UserRegisterSchema};
 use crate::response::GenericResponse;
 
-pub(crate) mod user;
-
 // TODO put this in config
 pub(crate) const MONGO_URI: &str = "mongodb://127.0.0.1:27017";
 
@@ -23,11 +21,13 @@ pub async fn establish_connection(uri: &str) -> mongodb::error::Result<Client> {
 const USER_DB: &str = "user_db";
 const USER_COLLECTION: &str = "user-collection";
 
-pub struct UserRepo {
+pub struct MongoRepo {
     client: Client,
 }
 
-impl UserRepo {
+impl MongoRepo {
+
+    #[cfg(all(mongo))]
     pub(crate) async fn init(client: Client) -> Self {
         Self { client }
     }

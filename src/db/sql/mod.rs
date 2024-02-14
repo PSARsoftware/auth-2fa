@@ -18,7 +18,7 @@ pub trait SqlRepo {
 
 /// this repo compiles depending on args passed into rustc
 /// cargo rustc -- --cfg postgres
-pub struct Repo {
+pub struct SqlRepoImpl {
     #[cfg(all(postgres))]
     pool: Pool<Postgres>,
     #[cfg(all(sqlite))]
@@ -28,7 +28,7 @@ pub struct Repo {
 
 }
 
-impl Repo {
+impl SqlRepoImpl {
     #[cfg(all(postgres))]
     pub async fn init(max_connections: u32, uri: &str) -> Result<Box<Self>, sqlx::Error> {
         let pool = PgPoolOptions::new()
@@ -57,7 +57,7 @@ impl Repo {
     }
 }
 
-impl SqlRepo for Repo {
+impl SqlRepo for SqlRepoImpl {
 
     #[cfg(any(postgres, mysql, sqlite))]
     async fn find_user_by_custom_field(&self, field_name: &str, field: &str) -> Option<User> {
@@ -119,7 +119,7 @@ impl SqlRepo for Repo {
 mod tests {
     use std::env;
     use dotenv::dotenv;
-    use crate::db::sql::Repo;
+    use crate::db::sql::SqlRepoImpl;
 
     #[tokio::test]
     async fn test_compilation_and_db_request() -> std::io::Result<()>
@@ -133,7 +133,7 @@ mod tests {
 
         let DATABASE_URL = env::var("DATABASE_URL").unwrap();
 
-        let repo = Repo::init(5, &DATABASE_URL).await;
+        let repo = SqlRepoImpl::init(5, &DATABASE_URL).await;
 
         let user = repo.find_user_by_custom_field("email", "vasia_pupkin@mail.ru");
 
