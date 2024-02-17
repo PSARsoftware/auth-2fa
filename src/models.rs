@@ -1,10 +1,5 @@
 use chrono::prelude::*;
 use serde::{Deserialize, Serialize};
-use std::sync::{Arc,};
-use tokio::sync::Mutex;
-use crate::db::mongo::MONGO_URI;
-use crate::db::mongo::MongoRepo;
-use crate::db::mongo::establish_connection;
 
 #[allow(non_snake_case)]
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -21,22 +16,6 @@ pub struct User {
 
     pub createdAt: Option<DateTime<Utc>>,
     pub updatedAt: Option<DateTime<Utc>>,
-}
-
-pub struct AppState {
-    pub user_repo: Arc<Mutex<MongoRepo>>,
-}
-
-impl AppState {
-    pub async fn init() -> AppState {
-        let mongo_client = establish_connection(MONGO_URI).await
-            .expect("Establishing mongo db connection failed");
-        println!("connection to mongo db has been established");
-
-        AppState {
-            user_repo: Arc::new(Mutex::new(MongoRepo::init(mongo_client).await)),
-        }
-    }
 }
 
 #[derive(Debug, Deserialize)]
