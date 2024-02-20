@@ -2,15 +2,9 @@ use chrono::prelude::*;
 use diesel::{Insertable, Queryable, Selectable};
 //use diesel::sql_types::Datetime;
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
-
-/// DB postgres representation
 #[derive(Clone, Queryable, Selectable, Serialize, Deserialize)]
 #[diesel(table_name = crate::schema::auth_users)]
-// adds additional compile time checks to verify that
-// all field types in your struct are compatible with their corresponding SQL side expressions.
-// This part is optional, but it greatly improves the generated compiler error messages.
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct AuthUser {
     pub id: String,

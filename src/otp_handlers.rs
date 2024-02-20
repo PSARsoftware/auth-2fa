@@ -43,8 +43,6 @@ pub async fn disable_otp_handler_inner(
     match &*data.into_inner() {
         GenericRepo::Mongo { repo } => { inner_fn(repo, user_id).await }
         GenericRepo::Postgres { repo } => { inner_fn(repo, user_id).await }
-        GenericRepo::Mysql { repo } => {  inner_fn(repo, user_id).await }
-        //GenericRepo::Sqlite { repo } => { inner_fn(repo, user_id).await }
     }
 }
 
@@ -105,8 +103,6 @@ pub async fn validate_otp_handler_inner(
     match &*data.into_inner() {
         GenericRepo::Mongo { repo } => { inner_fn(repo, body).await }
         GenericRepo::Postgres { repo } => { inner_fn(repo, body).await }
-        GenericRepo::Mysql { repo } => {  inner_fn(repo, body).await }
-        //GenericRepo::Sqlite { repo } => { inner_fn(repo, body).await }
     }
 }
 
@@ -162,8 +158,6 @@ pub async fn verify_otp_handler_inner(
     match &*data.into_inner() {
         GenericRepo::Mongo { repo } => { inner_fn(repo, body).await }
         GenericRepo::Postgres { repo } => { inner_fn(repo, body).await }
-        GenericRepo::Mysql { repo } => {  inner_fn(repo, body).await }
-        //GenericRepo::Sqlite { repo } => { inner_fn(repo, body).await }
     }
 }
 
@@ -214,27 +208,8 @@ pub async fn generate_otp_handler_inner(
     match &*data.into_inner() {
         GenericRepo::Mongo { repo } => { inner_fn(repo, body).await }
         GenericRepo::Postgres { repo } => { inner_fn(repo, body).await }
-        GenericRepo::Mysql { repo } => {  inner_fn(repo, body).await }
-        //GenericRepo::Sqlite { repo } => { inner_fn(repo, body).await }
     }
 }
-
-// fn parse_user_id(user_id: &str) -> Result<i32, HttpResponse> {
-//     let user_id = user_id.parse::<i32>()
-//         .map_err(|parse_err| {
-//             let json_error = GenericResponse {
-//                 status: "fail".to_string(),
-//                 message: parse_err.to_string(),
-//             };
-//             HttpResponse::BadRequest().json(json_error)
-//         });
-//
-//     return if user_id.is_err() {
-//         return Err(user_id.err().unwrap())
-//     } else {
-//         Ok(user_id.unwrap())
-//     }
-// }
 
 // async fn call_inner_fn<R: Repo, _Data, Func, Fut>(
 //     func: Func, 

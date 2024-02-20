@@ -2,7 +2,7 @@ use std::error::Error;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use crate::db::mongo::MongoRepo;
-use crate::db::sql::mysql::MysqlRepo;
+//use crate::db::sql::mysql::MysqlRepo;
 use crate::db::sql::postgres::PostgresRepo;
 //use crate::db::sql::sqlite::SqliteRepo;
 use crate::models::{AuthUser, UserRegisterSchema};
@@ -22,14 +22,6 @@ pub enum GenericRepo {
         //repo: Arc<Mutex<PostgresRepo<Postgres>>>,
         repo: Arc<Mutex<PostgresRepo>>,
     },
-    Mysql {
-        // repo: Arc<Mutex<MysqlRepo<MySql>>>,
-        repo: Arc<Mutex<MysqlRepo>>,
-    },
-    // Sqlite {
-    //     // repo: Arc<Mutex<SqliteRepo<Sqlite>>>,
-    //     repo: Arc<Mutex<SqliteRepo>>,
-    // },
 }
 
 impl GenericRepo {
@@ -50,16 +42,6 @@ impl GenericRepo {
                 repo = Arc::new(Mutex::new(*postgres_repo));
                 Ok(())
             }
-            GenericRepo::Mysql { mut repo } => {
-                let mysql_repo = MysqlRepo::init().await?;
-                repo = Arc::new(Mutex::new(*mysql_repo));
-                Ok(())
-            }
-            // GenericRepo::Sqlite { mut repo } => {
-            //     let sqlite_repo = SqliteRepo::init().await?;
-            //     repo = Arc::new(Mutex::new(*sqlite_repo));
-            //     Ok(())
-            // }
         }
     }
 
@@ -75,14 +57,6 @@ impl GenericRepo {
                 let mut repo = repo.lock().await;
                 repo.find_user_by_email(email).await
             }
-            GenericRepo::Mysql { repo } => {
-                let mut repo = repo.lock().await;
-                repo.find_user_by_email(email).await
-            }
-            // GenericRepo::Sqlite { repo } => {
-            //     let repo = repo.lock().await;
-            //     repo.find_user_by_custom_field(field_name, field).await
-            // }
         }
     }
 
@@ -98,14 +72,6 @@ impl GenericRepo {
                 let mut repo = repo.lock().await;
                 repo.register_user_by_email(user).await
             }
-            GenericRepo::Mysql { repo } => {
-                let mut repo = repo.lock().await;
-                repo.register_user_by_email(user).await
-            }
-            // GenericRepo::Sqlite { repo } => {
-            //     let repo = repo.lock().await;
-            //     repo.register_user_by_email(user).await
-            // }
         }
     }
 }

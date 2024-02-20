@@ -1,5 +1,4 @@
 // @generated automatically by Diesel CLI.
-
 diesel::table! {
     _sqlx_migrations (version) {
         version -> Int8,

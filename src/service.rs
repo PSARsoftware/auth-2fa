@@ -50,8 +50,6 @@ async fn register_user_handler(
     match &*data.into_inner() {
         GenericRepo::Mongo { repo } => { inner_fn(repo, body).await }
         GenericRepo::Postgres { repo } => { inner_fn(repo, body).await }
-        GenericRepo::Mysql { repo } => {  inner_fn(repo, body).await }
-        //GenericRepo::Sqlite { repo } => { inner_fn(repo, body).await }
     }
 }
 
@@ -86,8 +84,6 @@ async fn login_user_handler(
     match &*data.into_inner() {
         GenericRepo::Mongo { repo } => { inner_fn(repo, body).await }
         GenericRepo::Postgres { repo } => { inner_fn(repo, body).await }
-        GenericRepo::Mysql { repo } => {  inner_fn(repo, body).await }
-        //GenericRepo::Sqlite { repo } => { inner_fn(repo, body).await }
     }
 }
 
@@ -122,25 +118,6 @@ async fn disable_otp_handler(
 ) -> impl Responder {
     disable_otp_handler_inner(&body.user_id, data).await
 }
-
-
-// #[macro_export]
-// macro_rules! config {
-//     ($conf:expr, $repo_type:ty) => {
-//         |&mut conf| {
-//             let scope = web::scope("/api")
-//                 .service(health_checker_handler::<$repo_type>)
-//                 .service(register_user_handler::<$repo_type>)
-//                 .service(login_user_handler::<$repo_type>)
-//                 .service(generate_otp_handler::<$repo_type>)
-//                 .service(verify_otp_handler::<$repo_type>)
-//                 .service(validate_otp_handler::<$repo_type>)
-//                 .service(disable_otp_handler::<$repo_type>);
-//
-//             conf.service(scope)
-//         }
-//     };
-// }
 
 pub fn config(conf: &mut web::ServiceConfig) {
     let scope = web::scope("/api")
