@@ -1,9 +1,3 @@
-/*
-    Maybe someone knows how to make repo with generic field initializing
-    depending on rustc args instead of injecting pool
-    Pool<Postgres | Mysql | Sqlite> during initialization?
-    Or smth similar eliminating code duplication
- */
 
 //#[cfg(all(postgres))]
 pub mod postgres;
@@ -12,10 +6,10 @@ pub mod postgres;
 pub mod mysql;
 
 //#[cfg(all(sqlite))]
-pub mod sqlite;
+//pub mod sqlite;
 
 use std::error::Error;
-use crate::models::{User, UserRegisterSchema};
+use crate::models::{AuthUser, UserRegisterSchema};
 use crate::response::GenericResponse;
 
 #[cfg(test)]

@@ -1,76 +1,90 @@
+use std::env;
 use std::error::Error;
 use std::io::ErrorKind;
-use chrono::Utc;
-use sqlx::{Pool, Postgres};
-use sqlx::postgres::PgPoolOptions;
+use diesel::{SelectableHelper};
+use diesel_async::{RunQueryDsl, AsyncConnection, AsyncPgConnection};
+use diesel::query_dsl::methods::{FilterDsl, SelectDsl};
+use diesel::ExpressionMethods;
+use diesel::associations::HasTable;
 use uuid::Uuid;
 use crate::db::Repo;
-use crate::models::{User, UserRegisterSchema};
+use crate::models::{AuthUser, NewUser, UserRegisterSchema};
 use crate::response::GenericResponse;
+use crate::schema::auth_users::dsl::*;
 
+/*
+    brew install libpq
+    brew link --force libpq
+    PQ_LIB_DIR="$(brew --prefix libpq)/lib"
+    cargo install diesel_cli --no-default-features --features postgres
+ */
 
-/// this repo compiles : cargo rustc -- --cfg postgres
 pub struct PostgresRepo {
-    pool: Pool<Postgres>,
+    conn: AsyncPgConnection,
 }
 
 //#[cfg(all(postgres))]
-impl Repo<Postgres> for PostgresRepo {
+impl Repo for PostgresRepo {
 
-    async fn init(max_connections: u32, uri: &str)
+    async fn init()
         -> Result<Box<Self>, Box<dyn Error + Send + Sync>>
     {
-        let pool = PgPoolOptions::new()
-            .max_connections(max_connections)
-            .connect(uri).await?;
+        let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+        let conn = AsyncPgConnection::establish(&database_url).await
+            .unwrap_or_else(|_| panic!("Error connecting to {}", database_url));
 
-        Ok( Box::new(Self { pool } ))
+        Ok( Box::new(Self { conn } ))
     }
 
-    async fn find_user_by_custom_field(&self, field_name: &str, field: &str) -> Option<User> {
-        let existing_user: Result<Option<User>, _> = sqlx::query_as!(
-                User,
-                r#"SELECT id,email,name,password,otp_enabled,otp_verified,otp_base32,otp_auth_url,
-                created_at as "createdAt", updated_at as "updatedAt" FROM auth_users WHERE $1 = $2"#,
-                field_name,
-                field,
-            )
-            .fetch_optional(&self.pool)
+    async fn find_user_by_email(&mut self, _email: &str) -> Option<AuthUser> {
+
+        let users: Result<Vec<AuthUser>, _> = auth_users
+            .filter(email.eq(_email))
+            .load(&mut self.conn)
             .await;
 
-        return if existing_user.is_ok() {
-            existing_user.unwrap()
+        return if users.is_ok() {
+            users.unwrap().get(0).cloned()
         } else {
             None
         }
     }
 
-    async fn register_user_by_email(&self, user: UserRegisterSchema) -> Result<GenericResponse, Box<dyn Error>> {
-        return if self.find_user_by_custom_field("email", &user.email).await.is_none() {
-            let uuid_id = Uuid::new_v4();
-            let datetime = Utc::now();
+    async fn find_user_by_id(&mut self, _id: &str) -> Option<AuthUser> {
 
-            let user = User {
-                id: Some(uuid_id),
-                email: user.email.to_owned().to_lowercase(),
-                name: user.name.to_owned(),
-                password: user.password.to_owned(),
-                otp_enabled: Some(false),
-                otp_verified: Some(false),
+        let users: Result<Vec<AuthUser>, _> = auth_users
+            .filter(id.eq(_id))
+            .load(&mut self.conn)
+            .await;
+
+        return if users.is_ok() {
+            users.unwrap().get(0).cloned()
+        } else {
+            None
+        }
+    }
+
+    async fn register_user_by_email(&mut self, user: UserRegisterSchema)
+        -> Result<GenericResponse, Box<dyn Error>>
+    {
+        return if self.find_user_by_email( &user.email).await.is_none() {
+
+            let new_user = NewUser {
+                email: &user.email,
+                name: &user.name,
+                password: &user.password,
+                otp_enabled: None,
+                otp_verified: None,
                 otp_base32: None,
                 otp_auth_url: None,
-                createdAt: Some(datetime),
-                updatedAt: Some(datetime),
+                created_at: Some(chrono::offset::Utc::now()),
+                updated_at: Some(chrono::offset::Utc::now()),
             };
 
-            let _ = sqlx::query_as!(
-                User,
-                r#"INSERT INTO auth_users (name, email, password) VALUES ($1, $2, $3)"#,
-                &user.name,
-                &user.email,
-                &user.password,
-            )
-                .fetch_one(&self.pool)
+            diesel::insert_into(auth_users::table())
+                .values(&new_user)
+                .returning(AuthUser::as_returning())
+                .get_result(&mut self.conn)
                 .await?;
 
             Ok(GenericResponse::ok(&format!("registered new user with email: {}", &user.email)))

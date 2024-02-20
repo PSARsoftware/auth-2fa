@@ -1,6 +1,6 @@
 use chrono::prelude::*;
 use serde::Serialize;
-use crate::models::User;
+use crate::models::AuthUser;
 
 #[derive(Serialize)]
 pub struct GenericResponse {
@@ -40,18 +40,18 @@ pub struct UserData {
     pub updatedAt: DateTime<Utc>,
 }
 
-impl From<User> for UserData {
-    fn from(user: User) -> Self {
+impl From<AuthUser> for UserData {
+    fn from(user: AuthUser) -> Self {
         UserData {
-            id: user.id.unwrap().to_string(),
+            id: user.id,
             name: user.name,
             email: user.email,
             otp_auth_url: user.otp_auth_url,
             otp_base32: user.otp_base32,
             otp_enabled: user.otp_enabled.unwrap(),
             otp_verified: user.otp_verified.unwrap(),
-            createdAt: user.createdAt.unwrap(),
-            updatedAt: user.updatedAt.unwrap(),
+            createdAt: user.created_at.unwrap(),
+            updatedAt: user.updated_at.unwrap(),
         }
     }
 }

@@ -1,9 +1,8 @@
-use std::future::Future;
-use std::io::ErrorKind;
+
 use std::sync::Arc;
 use crate::{
     models::{
-         DisableOTPSchema, GenerateOTPSchema, User, UserLoginSchema, UserRegisterSchema,
+        DisableOTPSchema, GenerateOTPSchema, AuthUser, UserLoginSchema, UserRegisterSchema,
         VerifyOTPSchema,
     },
     otp_handlers::{
@@ -13,12 +12,8 @@ use crate::{
     response::{GenericResponse, UserData, UserResponse},
 };
 use actix_web::{get, post, web, HttpResponse, Responder};
-use chrono::prelude::*;
-use serde::de::StdError;
-use serde::de::Unexpected::Str;
 use serde_json::json;
 use tokio::sync::Mutex;
-use uuid::Uuid;
 use crate::db::{GenericRepo, Repo};
 use crate::db::sql::postgres::PostgresRepo;
 
@@ -36,10 +31,10 @@ async fn register_user_handler(
 )
     -> impl Responder
 {
-    async fn inner_fn<DB, R: Repo<DB>>(repo: &Arc<Mutex<R>>, body: web::Json<UserRegisterSchema>)
+    async fn inner_fn<R: Repo>(repo: &Arc<Mutex<R>>, body: web::Json<UserRegisterSchema>)
         -> HttpResponse
     {
-        let user_repo = repo.lock().await;
+        let mut user_repo = repo.lock().await;
         let email = &body.email.clone();
 
         if user_repo.register_user_by_email(body.into_inner()).await.is_ok() {
@@ -56,7 +51,7 @@ async fn register_user_handler(
         GenericRepo::Mongo { repo } => { inner_fn(repo, body).await }
         GenericRepo::Postgres { repo } => { inner_fn(repo, body).await }
         GenericRepo::Mysql { repo } => {  inner_fn(repo, body).await }
-        GenericRepo::Sqlite { repo } => { inner_fn(repo, body).await }
+        //GenericRepo::Sqlite { repo } => { inner_fn(repo, body).await }
     }
 }
 
@@ -66,13 +61,12 @@ async fn login_user_handler(
     data: web::Data<GenericRepo>)
     -> impl Responder
 {
-    async fn inner_fn<DB, R: Repo<DB>>(repo: &Arc<Mutex<R>>, body: web::Json<UserLoginSchema>)
+    async fn inner_fn<R: Repo>(repo: &Arc<Mutex<R>>, body: web::Json<UserLoginSchema>)
         -> HttpResponse
-    where DB: sqlx::database::Database
     {
-        let user_repo = repo.lock().await;
+        let mut user_repo = repo.lock().await;
 
-        let user = user_repo.find_user_by_custom_field("email", &body.email.to_lowercase()).await;
+        let user = user_repo.find_user_by_email(&body.email.to_lowercase()).await;
 
         if user.is_none() {
             return HttpResponse::BadRequest()
@@ -93,7 +87,7 @@ async fn login_user_handler(
         GenericRepo::Mongo { repo } => { inner_fn(repo, body).await }
         GenericRepo::Postgres { repo } => { inner_fn(repo, body).await }
         GenericRepo::Mysql { repo } => {  inner_fn(repo, body).await }
-        GenericRepo::Sqlite { repo } => { inner_fn(repo, body).await }
+        //GenericRepo::Sqlite { repo } => { inner_fn(repo, body).await }
     }
 }
 

@@ -1,24 +1,13 @@
 use std::env;
 use std::error::Error;
-use std::sync::Arc;
 use actix_cors::Cors;
 use actix_web::{App, HttpServer, web};
-use actix_web::dev::HttpServiceFactory;
 use actix_web::http::header;
 use actix_web::middleware::Logger;
 use actix_web::web::Data;
 use dotenv::dotenv;
 use env_logger::Builder;
-use sqlx::{MySql, Postgres, Sqlite};
-//#[cfg(all(mongo))]
-use crate::db::mongo::MongoRepo;
-use crate::db::Repo;
-//#[cfg(all(postgres))]
-use crate::db::sql::postgres::PostgresRepo;
-//#[cfg(all(sqlite))]
-use crate::db::sql::sqlite::SqliteRepo;
-//#[cfg(all(mysql))]
-use crate::db::sql::mysql::MysqlRepo;
+
 
 mod otp_handlers;
 #[macro_use]
@@ -26,6 +15,7 @@ mod service;
 mod response;
 mod models;
 mod db;
+mod schema;
 
 #[cfg(all(mongo))]
 pub async fn start_2FA_server_with_mongo_repo() -> std::io::Result<()>
