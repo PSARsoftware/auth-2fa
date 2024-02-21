@@ -7,7 +7,7 @@ use mongodb::options::ClientOptions;
 use mongodb::bson::doc;
 use uuid::Uuid;
 use crate::db::Repo;
-use crate::models::{AuthUser, UserLoginSchema, UserRegisterSchema};
+use crate::models::{AuthUser, UserRegisterSchema};
 use crate::response::GenericResponse;
 
 // TODO put this in config
@@ -32,7 +32,7 @@ impl Repo for MongoRepo {
     async fn init()
         -> Result<Box<Self>, Box<dyn Error + Send + Sync>>
     {
-        let mongo_uri = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+        let mongo_uri = env::var("MONGO_URL").expect("MONGO_URL must be set");
         let client = establish_connection(&mongo_uri).await?;
         Ok(Box::new(Self { client }))
     }
